@@ -24,3 +24,17 @@ int chatID_access[] = {
   987654321,
   1342960019
 };
+const String bossChatID = "1342960019";
+
+int maxCO2Today = 0;
+int visitorCountToday = 0;
+
+String uartData = "";
+bool co2StatusOK = true; // true — CO2 в норме, false — превышение
+bool notified = false;   // чтобы не спамить уведомления
+
+String lightStatus1 = "open"; // по умолчанию свободно
+String lightStatus2 = "open";
+
+int lastCo2Value = -1;
+int lastCoValue = -1;
