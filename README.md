@@ -82,4 +82,4 @@
 ![Схема норм](https://github.com/user-attachments/assets/8616a6d2-1e7d-4867-bb2f-0a01b9a3a6d6)
 
 ## Схема
-
+https://drive.google.com/file/d/1xbkNostY-GqS42vO7aqeADsjEylpyNrF/view?usp=drivesdk
