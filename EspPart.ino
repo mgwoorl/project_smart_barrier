@@ -10,3 +10,10 @@ const char* password = "lalala3031";
 
 WiFiClientSecure client;
 UniversalTelegramBot bot(BOTtoken, client);
+
+Servo barrierServo;
+const int servoPin = D4;
+
+const int trigPin = D1;
+const int echoPin = D2;
+const float DISTANCE_THRESHOLD = 30.0;
