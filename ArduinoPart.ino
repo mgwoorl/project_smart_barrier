@@ -23,3 +23,10 @@ void loop() {
   String lightStatus2 = (light2 > lightThreshold) ? "close" : "open";
 
 }
+
+co2Value = analogRead(co2Pin);
+coLimitStatus = (co2Value <= CO2_LIMIT) ? 1 : 0;
+
+const int co2StatusPin = 7;
+pinMode(co2StatusPin, OUTPUT);
+digitalWrite(co2StatusPin, coLimitStatus);
