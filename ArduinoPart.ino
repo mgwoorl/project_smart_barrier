@@ -30,3 +30,6 @@ coLimitStatus = (co2Value <= CO2_LIMIT) ? 1 : 0;
 const int co2StatusPin = 7;
 pinMode(co2StatusPin, OUTPUT);
 digitalWrite(co2StatusPin, coLimitStatus);
+
+coAnalogValue = analogRead(ANALOG_PIN);
+coLimitStatus = digitalRead(DIGITAL_PIN);
