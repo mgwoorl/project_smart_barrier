@@ -160,3 +160,57 @@ String getParkingStatusMessage() {
     return "Все парковочные места свободны.";
   }
 }
+
+void handleNewMessages(int numNewMessages) {
+  for (int i = 0; i < numNewMessages; i++) {
+    String chat_id = bot.messages[i].chat_id;
+    String text = bot.messages[i].text;
+    String from_name = bot.messages[i].from_name;
+
+    if (!isChatAllowed(chat_id)) continue;
+
+    if (text == "/start") {
+      String commands = "/start - начать\n"
+                        "/open - открыть шлагбаум\n"
+                        "/status - статус парковочных мест\n"
+                        "/myid - ваш chat_id";
+      if (isBoss(chat_id)) {
+        commands += "\n/airdata - данные по воздуху (CO2, CO)";
+      }
+      bot.sendMessage(chat_id, "Привет, " + from_name + "!\nДоступные команды:\n" + commands, "");
+      
+      // Считаем это визитом
+      visitorCountToday++;
+    }
+    else if (text == "/open") {
+      float distance = readDistanceCM();
+      if (distance < DISTANCE_THRESHOLD) {
+        bot.sendMessage(chat_id, "Машина обнаружена на расстоянии " + String(distance, 1) + " см. Открываю шлагбаум.", "");
+        barrierServo.write(90);
+        delay(5000);
+        barrierServo.write(0);
+      } else {
+        bot.sendMessage(chat_id, "Машина не обнаружена. Расстояние: " + String(distance, 1) + " см. Подъедьте ближе.", "");
+      }
+      visitorCountToday++; // считаем посещение и здесь
+    }
+    else if (text == "/status") {
+      String msg = getParkingStatusMessage();
+      bot.sendMessage(chat_id, msg, "");
+    }
+    else if (text == "/myid") {
+      bot.sendMessage(chat_id, "Ваш chat_id: " + chat_id, "");
+    }
+    else if (text == "/airdata" && isBoss(chat_id)) {
+      // Только боссу показываем данные воздуха
+      String airDataMsg = "Данные воздуха:\n";
+      airDataMsg += "CO2: " + String(lastCo2Value) + "\n";
+      airDataMsg += "CO: " + String(lastCoValue) + "\n";
+      airDataMsg += String("Статус CO2: ") + (co2StatusOK ? "В норме" : "Превышение") + "\n";
+      bot.sendMessage(chat_id, airDataMsg, "");
+    }
+    else {
+      bot.sendMessage(chat_id, "Неизвестная команда. Напишите /start для списка команд.", "");
+    }
+  }
+}
