@@ -10,3 +10,8 @@ const int CO2_LIMIT = 600;  // допустимый уровень CO2
 #define DIGITAL_PIN 8
 int coAnalogValue = 0;
 int coLimitStatus = 0;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(DIGITAL_PIN, INPUT);
+}
