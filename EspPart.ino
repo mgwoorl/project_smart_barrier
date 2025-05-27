@@ -17,3 +17,10 @@ const int servoPin = D4;
 const int trigPin = D1;
 const int echoPin = D2;
 const float DISTANCE_THRESHOLD = 30.0;
+
+bool protection = true;
+int chatID_access[] = {
+  123456789,
+  987654321,
+  1342960019
+};
