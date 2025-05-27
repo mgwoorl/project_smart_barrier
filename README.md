@@ -75,5 +75,9 @@
 
 ## Use-case
 
-[![Uploading IMG_1731.PNG…]()](https://drive.google.com/drive/folders/1UwLPx_Oa37u3AxuBlTMqqoA-m0CDdbQa)
+
+## Схема
+
+![Схема](https://github.com/user-attachments/assets/44b5f324-c7f1-4e1f-94a9-ffc19e6d86e5)
+
 
