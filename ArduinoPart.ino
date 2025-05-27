@@ -33,3 +33,13 @@ digitalWrite(co2StatusPin, coLimitStatus);
 
 coAnalogValue = analogRead(ANALOG_PIN);
 coLimitStatus = digitalRead(DIGITAL_PIN);
+
+String data = "CO2:" + String(co2Value);
+data += ";CO2_STATUS:" + String(coLimitStatus);
+data += ";L1:" + lightStatus1;
+data += ";L2:" + lightStatus2;
+
+Serial.println(data);
+
+delay(1000);
+
