@@ -71,3 +71,8 @@
 - ✅ Датчик CO₂ 
 - ✅ Сервопривод для шлагбаума
 - ✅ Wi-Fi соединение + Telegram Bot API
+
+
+## Use-case
+
+![Uploading IMG_1731.PNG…]()
