@@ -31,7 +31,7 @@ int visitorCountToday = 0;
 
 String uartData = "";
 bool co2StatusOK = true; // true — CO2 в норме, false — превышение
-bool notified = false;   // чтобы не спамить уведомления
+bool notified = false;   // чтобы не спамить уведомлениями
 
 String lightStatus1 = "open"; // по умолчанию свободно
 String lightStatus2 = "open";
