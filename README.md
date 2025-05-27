@@ -1,6 +1,6 @@
 # Smart Parking System
 ## Ссылки
-Демонмтрация: 
+Демонмтрация: https://drive.google.com/file/d/1xbkNostY-GqS42vO7aqeADsjEylpyNrF/view?usp=drivesdk
 
 Телеграмм бот: @ESPBarrier_bot
   
