@@ -143,3 +143,20 @@ void handleUART() {
     }
   }
 }
+
+String getParkingStatusMessage() {
+  String occupied = "";
+  if (lightStatus1 == "close") {
+    occupied += "1, ";
+  }
+  if (lightStatus2 == "close") {
+    occupied += "2, ";
+  }
+  if (occupied.length() > 0) {
+    // Убираем последнюю запятую и пробел
+    occupied.remove(occupied.length() - 2);
+    return "Заняты парковочные места: " + occupied;
+  } else {
+    return "Все парковочные места свободны.";
+  }
+}
