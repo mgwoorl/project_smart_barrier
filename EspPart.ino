@@ -51,3 +51,15 @@ bool isChatAllowed(String chat_id) {
 bool isBoss(String chat_id) {
   return chat_id == bossChatID;
 }
+
+float readDistanceCM() {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  long duration = pulseIn(echoPin, HIGH, 30000);
+  float distance = duration * 0.0343 / 2;
+  if (duration == 0) return 999;
+  return distance;
+}
