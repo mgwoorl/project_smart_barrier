@@ -14,7 +14,7 @@ void setup() {
   Serial.begin(9600);
   pinMode(DIGITAL_PIN, INPUT);
 }
-
+ 
 void loop() {
   int light1 = analogRead(photoPin1);
   int light2 = analogRead(photoPin2);
