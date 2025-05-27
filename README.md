@@ -74,6 +74,7 @@
 
 
 ## Use-case
+![Usecase](https://github.com/user-attachments/assets/34640fce-60e1-4cc9-ab64-b584db4de571)
 
 
 ## Схема
