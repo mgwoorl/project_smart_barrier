@@ -63,3 +63,83 @@ float readDistanceCM() {
   if (duration == 0) return 999;
   return distance;
 }
+
+void handleUART() {
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\n') {
+      Serial.print("Получено от Arduino: ");
+      Serial.println(uartData);
+
+      int co2Value = -1;
+      int co2Status = -1;
+      int coValue = -1;
+
+      int idxCO2 = uartData.indexOf("CO2:");
+      int idxCO2Status = uartData.indexOf("CO2_STATUS:");
+      int idxCO = uartData.indexOf("CO:");
+      int idxL1 = uartData.indexOf("L1:");
+      int idxL2 = uartData.indexOf("L2:");
+
+      if (idxCO2 != -1) {
+        int endIdx = uartData.indexOf(';', idxCO2);
+        if (endIdx == -1) endIdx = uartData.length();
+        String co2Str = uartData.substring(idxCO2 + 4, endIdx);
+        co2Value = co2Str.toInt();
+        lastCo2Value = co2Value;
+
+        // Обновляем максимальный CO2 за день
+        if (co2Value > maxCO2Today) maxCO2Today = co2Value;
+      }
+
+      if (idxCO != -1) {
+        int endIdx = uartData.indexOf(';', idxCO);
+        if (endIdx == -1) endIdx = uartData.length();
+        String coStr = uartData.substring(idxCO + 3, endIdx);
+        coValue = coStr.toInt();
+        lastCoValue = coValue;
+      }
+
+      if (idxCO2Status != -1) {
+        int endIdx = uartData.indexOf(';', idxCO2Status);
+        if (endIdx == -1) endIdx = uartData.length();
+        String co2StatusStr = uartData.substring(idxCO2Status + 11, endIdx);
+        co2Status = co2StatusStr.toInt();
+      }
+
+      if (idxL1 != -1) {
+        int endIdx = uartData.indexOf(';', idxL1);
+        if (endIdx == -1) endIdx = uartData.length();
+        lightStatus1 = uartData.substring(idxL1 + 3, endIdx);
+        lightStatus1.trim();
+      }
+      if (idxL2 != -1) {
+        int endIdx = uartData.indexOf(';', idxL2);
+        if (endIdx == -1) endIdx = uartData.length();
+        lightStatus2 = uartData.substring(idxL2 + 3, endIdx);
+        lightStatus2.trim();
+      }
+
+      // Обработка CO2_STATUS
+      if (co2Status == 1) {
+        co2StatusOK = true;
+      } else if (co2Status == 0) {
+        co2StatusOK = false;
+      }
+
+      // Отправка предупреждения в Telegram при превышении CO2 только боссу
+      if (!co2StatusOK && !notified) {
+        String alertMsg = "⚠️ Внимание! Уровень CO2 превышен! Текущее значение: " + String(co2Value);
+        bot.sendMessage(bossChatID, alertMsg, "");
+        notified = true;
+      }
+      if (co2StatusOK) {
+        notified = false;
+      }
+
+      uartData = "";
+    } else {
+      uartData += c;
+    }
+  }
+}
