@@ -214,3 +214,23 @@ void handleNewMessages(int numNewMessages) {
     }
   }
 }
+
+
+unsigned long lastDailyReportMillis = 0;
+const unsigned long dailyInterval = 24UL * 60UL * 60UL * 1000UL; // 24 часа
+
+void sendDailyReportIfNeeded() {
+  unsigned long currentMillis = millis();
+  if (currentMillis - lastDailyReportMillis > dailyInterval || lastDailyReportMillis == 0) {
+    lastDailyReportMillis = currentMillis;
+
+    String reportMsg = "📊 Ежедневная статистика:\n";
+    reportMsg += getParkingStatusMessage() + "\n";
+    reportMsg += "Максимальный уровень CO2 сегодня: " + String(maxCO2Today) + "\n";
+    reportMsg += "Количество посетителей сегодня: " + String(visitorCountToday) + "\n";
+
+    bot.sendMessage(bossChatID, reportMsg, "");
+    maxCO2Today = 0;
+    visitorCountToday = 0;
+  }
+}
