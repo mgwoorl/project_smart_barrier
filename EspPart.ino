@@ -234,3 +234,26 @@ void sendDailyReportIfNeeded() {
     visitorCountToday = 0;
   }
 }
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  barrierServo.attach(servoPin);
+  barrierServo.write(0);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Подключение к WiFi...");
+  }
+
+  Serial.println("WiFi подключен. IP: ");
+  Serial.println(WiFi.localIP());
+
+  client.setInsecure();  // Отключаем проверку сертификатов
+}
+
