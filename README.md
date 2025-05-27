@@ -79,6 +79,7 @@
 
 ## Схема
 
-![Схема](https://github.com/user-attachments/assets/44b5f324-c7f1-4e1f-94a9-ffc19e6d86e5)
+![Схема норм](https://github.com/user-attachments/assets/8616a6d2-1e7d-4867-bb2f-0a01b9a3a6d6)
+
 
 
