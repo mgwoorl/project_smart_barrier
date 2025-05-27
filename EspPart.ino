@@ -38,3 +38,16 @@ String lightStatus2 = "open";
 
 int lastCo2Value = -1;
 int lastCoValue = -1;
+
+bool isChatAllowed(String chat_id) {
+  if (!protection) return true;
+  for (int i = 0; i < sizeof(chatID_access) / sizeof(chatID_access[0]); i++) {
+    if (String(chatID_access[i]) == chat_id) return true;
+  }
+  bot.sendMessage(chat_id, "У вас нет доступа. Ваш chat_id: " + chat_id, "");
+  return false;
+}
+
+bool isBoss(String chat_id) {
+  return chat_id == bossChatID;
+}
