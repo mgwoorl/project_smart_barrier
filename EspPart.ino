@@ -257,3 +257,20 @@ void setup() {
   client.setInsecure();  // Отключаем проверку сертификатов
 }
 
+void loop() {
+  handleUART();  // Обработка входящих данных с UART
+
+  static unsigned long lastTimeBotRan = 0;
+  const int botDelay = 1000;
+
+  if (millis() - lastTimeBotRan > botDelay) {
+    int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+    while (numNewMessages) {
+      handleNewMessages(numNewMessages);
+      numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+    }
+    lastTimeBotRan = millis();
+  }
+
+  sendDailyReportIfNeeded();
+}
