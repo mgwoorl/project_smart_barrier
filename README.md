@@ -74,7 +74,7 @@
 - ✅ Wi-Fi соединение и Telegram Bot API
 
 ## Основные функции 
-✅ bool isChatAllowed(String chat_id)
+### ✅ bool isChatAllowed(String chat_id)
 
 Что делает:
 
@@ -88,7 +88,7 @@ chat_id — идентификатор Telegram-пользователя.
 - false — если нет (и отправляет сообщение об отказе в доступе).
 
 
-✅ float readDistanceCM()
+### ✅ float readDistanceCM()
 
 Что делает:
 
@@ -98,6 +98,20 @@ chat_id — идентификатор Telegram-пользователя.
 - Расстояние в сантиметрах до объекта.
 
 - 999, если измерение не удалось.
+
+### ✅ void handleUART()
+Что делает:
+
+Обрабатывает данные, полученные по UART (например, от Arduino).
+
+Извлекает:
+
+Значения CO2, CO, статус CO2, и статусы парковки (L1, L2).
+
+Также:
+
+Обновляет переменные и отправляет Telegram-уведомления при превышении CO2.
+
 ## Use-case
 ![Usecase](https://github.com/user-attachments/assets/34640fce-60e1-4cc9-ab64-b584db4de571)
 
