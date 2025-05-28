@@ -77,8 +77,8 @@
 ### ✅ bool isChatAllowed(String chat_id)
 
 Что делает:
-
 Проверяет, есть ли у пользователя доступ к управлению ботом.
+
 Принимает:
 
 chat_id — идентификатор Telegram-пользователя.
@@ -116,6 +116,17 @@ lightStatus1, lightStatus2
 
 Возвращает:
 Информацию о том, какие места заняты.
+
+### ✅ void handleNewMessages(int numNewMessages)
+Что делает:
+Обрабатывает новые сообщения, полученные ботом.
+
+Принимает:
+numNewMessages — количество новых сообщений от Telegram.
+
+Реализует команды:
+
+`/start`, `/open`, `/status`, `/myid`, `/airdata`
 
 ## Use-case
 ![Usecase](https://github.com/user-attachments/assets/34640fce-60e1-4cc9-ab64-b584db4de571)
