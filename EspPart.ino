@@ -3,7 +3,7 @@
 #include <UniversalTelegramBot.h>
 #include <ArduinoJson.h>
 #include <Servo.h>
- 
+
 const char* ssid = "Estriper";
 const char* password = "lalala3031";
 #define BOTtoken "8148150074:AAEtVWxB62mpDiIRsrUQJCHgci61_igmqRo"
@@ -24,20 +24,6 @@ int chatID_access[] = {
   987654321,
   1342960019
 };
-const String bossChatID = "1342960019";
-
-int maxCO2Today = 0;
-int visitorCountToday = 0;
-
-String uartData = "";
-bool co2StatusOK = true; // true — CO2 в норме, false — превышение
-bool notified = false;   // чтобы не спамить уведомлениями
-
-String lightStatus1 = "open"; // по умолчанию свободно
-String lightStatus2 = "open";
-
-int lastCo2Value = -1;
-int lastCoValue = -1;
 
 bool isChatAllowed(String chat_id) {
   if (!protection) return true;
@@ -46,10 +32,6 @@ bool isChatAllowed(String chat_id) {
   }
   bot.sendMessage(chat_id, "У вас нет доступа. Ваш chat_id: " + chat_id, "");
   return false;
-}
-
-bool isBoss(String chat_id) {
-  return chat_id == bossChatID;
 }
 
 float readDistanceCM() {
@@ -64,6 +46,13 @@ float readDistanceCM() {
   return distance;
 }
 
+String uartData = "";
+bool co2StatusOK = true; // true — CO2 в норме, false — превышение
+bool notified = false;   // чтобы не спамить уведомления
+
+String lightStatus1 = "open"; // по умолчанию свободно
+String lightStatus2 = "open";
+
 void handleUART() {
   while (Serial.available()) {
     char c = Serial.read();
@@ -73,11 +62,9 @@ void handleUART() {
 
       int co2Value = -1;
       int co2Status = -1;
-      int coValue = -1;
 
       int idxCO2 = uartData.indexOf("CO2:");
       int idxCO2Status = uartData.indexOf("CO2_STATUS:");
-      int idxCO = uartData.indexOf("CO:");
       int idxL1 = uartData.indexOf("L1:");
       int idxL2 = uartData.indexOf("L2:");
 
@@ -86,18 +73,6 @@ void handleUART() {
         if (endIdx == -1) endIdx = uartData.length();
         String co2Str = uartData.substring(idxCO2 + 4, endIdx);
         co2Value = co2Str.toInt();
-        lastCo2Value = co2Value;
-
-        // Обновляем максимальный CO2 за день
-        if (co2Value > maxCO2Today) maxCO2Today = co2Value;
-      }
-
-      if (idxCO != -1) {
-        int endIdx = uartData.indexOf(';', idxCO);
-        if (endIdx == -1) endIdx = uartData.length();
-        String coStr = uartData.substring(idxCO + 3, endIdx);
-        coValue = coStr.toInt();
-        lastCoValue = coValue;
       }
 
       if (idxCO2Status != -1) {
@@ -120,17 +95,18 @@ void handleUART() {
         lightStatus2.trim();
       }
 
-      // Обработка CO2_STATUS
       if (co2Status == 1) {
         co2StatusOK = true;
       } else if (co2Status == 0) {
         co2StatusOK = false;
       }
 
-      // Отправка предупреждения в Telegram при превышении CO2 только боссу
+      // Отправка предупреждения в Telegram при превышении CO2
       if (!co2StatusOK && !notified) {
         String alertMsg = "⚠️ Внимание! Уровень CO2 превышен! Текущее значение: " + String(co2Value);
-        bot.sendMessage(bossChatID, alertMsg, "");
+        for (int i = 0; i < sizeof(chatID_access) / sizeof(chatID_access[0]); i++) {
+          bot.sendMessage(String(chatID_access[i]), alertMsg, "");
+        }
         notified = true;
       }
       if (co2StatusOK) {
@@ -153,7 +129,6 @@ String getParkingStatusMessage() {
     occupied += "2, ";
   }
   if (occupied.length() > 0) {
-    // Убираем последнюю запятую и пробел
     occupied.remove(occupied.length() - 2);
     return "Заняты парковочные места: " + occupied;
   } else {
@@ -174,13 +149,7 @@ void handleNewMessages(int numNewMessages) {
                         "/open - открыть шлагбаум\n"
                         "/status - статус парковочных мест\n"
                         "/myid - ваш chat_id";
-      if (isBoss(chat_id)) {
-        commands += "\n/airdata - данные по воздуху (CO2, CO)";
-      }
       bot.sendMessage(chat_id, "Привет, " + from_name + "!\nДоступные команды:\n" + commands, "");
-      
-      // Считаем это визитом
-      visitorCountToday++;
     }
     else if (text == "/open") {
       float distance = readDistanceCM();
@@ -192,7 +161,6 @@ void handleNewMessages(int numNewMessages) {
       } else {
         bot.sendMessage(chat_id, "Машина не обнаружена. Расстояние: " + String(distance, 1) + " см. Подъедьте ближе.", "");
       }
-      visitorCountToday++; // считаем посещение и здесь
     }
     else if (text == "/status") {
       String msg = getParkingStatusMessage();
@@ -201,37 +169,9 @@ void handleNewMessages(int numNewMessages) {
     else if (text == "/myid") {
       bot.sendMessage(chat_id, "Ваш chat_id: " + chat_id, "");
     }
-    else if (text == "/airdata" && isBoss(chat_id)) {
-      // Только боссу показываем данные воздуха
-      String airDataMsg = "Данные воздуха:\n";
-      airDataMsg += "CO2: " + String(lastCo2Value) + "\n";
-      airDataMsg += "CO: " + String(lastCoValue) + "\n";
-      airDataMsg += String("Статус CO2: ") + (co2StatusOK ? "В норме" : "Превышение") + "\n";
-      bot.sendMessage(chat_id, airDataMsg, "");
-    }
     else {
       bot.sendMessage(chat_id, "Неизвестная команда. Напишите /start для списка команд.", "");
     }
-  }
-}
-
-
-unsigned long lastDailyReportMillis = 0;
-const unsigned long dailyInterval = 24UL * 60UL * 60UL * 1000UL; // 24 часа
-
-void sendDailyReportIfNeeded() {
-  unsigned long currentMillis = millis();
-  if (currentMillis - lastDailyReportMillis > dailyInterval || lastDailyReportMillis == 0) {
-    lastDailyReportMillis = currentMillis;
-
-    String reportMsg = "📊 Ежедневная статистика:\n";
-    reportMsg += getParkingStatusMessage() + "\n";
-    reportMsg += "Максимальный уровень CO2 сегодня: " + String(maxCO2Today) + "\n";
-    reportMsg += "Количество посетителей сегодня: " + String(visitorCountToday) + "\n";
-
-    bot.sendMessage(bossChatID, reportMsg, "");
-    maxCO2Today = 0;
-    visitorCountToday = 0;
   }
 }
 
@@ -254,7 +194,7 @@ void setup() {
   Serial.println("WiFi подключен. IP: ");
   Serial.println(WiFi.localIP());
 
-  client.setInsecure();  // Отключаем проверку сертификатов
+  client.setInsecure();  
 }
 
 void loop() {
@@ -271,6 +211,4 @@ void loop() {
     }
     lastTimeBotRan = millis();
   }
-
-  sendDailyReportIfNeeded();
 }
