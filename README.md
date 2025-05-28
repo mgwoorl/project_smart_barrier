@@ -73,6 +73,15 @@
 - ✅ Сервопривод для шлагбаума
 - ✅ Wi-Fi соединение и Telegram Bot API
 
+## Основные функции 
+✅ bool isChatAllowed(String chat_id)
+Что делает:
+Проверяет, есть ли у пользователя доступ к управлению ботом.
+Принимает:
+chat_id — идентификатор Telegram-пользователя.
+Возвращает:
+- true — если доступ есть,
+- false — если нет (и отправляет сообщение об отказе в доступе).
 
 ## Use-case
 ![Usecase](https://github.com/user-attachments/assets/34640fce-60e1-4cc9-ab64-b584db4de571)
