@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standart]
+sqlalchemy
+asyncmy
+passlib
+aiogram
+pymysql
+alembic
+cryptography
+bcrypt
