@@ -1,0 +1,1 @@
+from .logic import _add_new_user
