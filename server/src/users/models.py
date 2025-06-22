@@ -12,3 +12,12 @@ class User(BaseDBModel):
     isAdmin = Column(Boolean, nullable=False)
     deleted_at = Column(DateTime, nullable=True)
 
+class Sensor(BaseDBModel):
+    __tablename__ = "sensors"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    distance_exit = Column(Integer, nullable=True)         
+    distance_entrance = Column(Integer, nullable=True)    
+    free_places = Column(Integer, nullable=True)           
+    co2 = Column(Integer, nullable=True)
+
