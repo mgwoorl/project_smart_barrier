@@ -43,3 +43,18 @@ async def _add_new_user(user_chat_id: str, chat_id: int, db: AsyncSession):
     except Exception as e:
         await db.rollback()
         raise
+
+
+async def _change_user_status(chat_id: int, db: AsyncSession):
+    try:
+        result = await db.execute(select(User).filter(User.chat_id == chat_id, User.deleted_at == None))
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise BotException("Пользователь не найден.")
+
+        user.isAdmin = True  
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise
