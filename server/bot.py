@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 from src.bot.exceptions import BotException
 from src.bot.logic import _add_new_user
+from src.bot.logic import _change_user_status
 from src.database import engine
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,8 @@ dp = Dispatcher()
 
 @dp.message(CommandStart())
 async def handle_start(message: Message):
-    instruction = "Привет, я ботик"
+    username = message.from_user.username
+    instruction = f"👋 Привет, {username}!\nЯ — Бот Барьер 🤖\n\nВот список доступных команд:\n🔹 /register [chat_id] — регистрация пользователя (доступно только для админов)\n🔹 /chat — узнать свой уникальный айдишник\n\n"
     await message.answer(instruction)
 
 
@@ -68,5 +71,38 @@ async def main():
         await bot.session.close()
 
 
+# Хэш пароля "admin228"
+ADMIN_PASSWORD_HASH = hashlib.sha256("admin228".encode()).hexdigest()
+
+@dp.message(Command("ImAdmin"))
+async def im_admin_command(message: Message):
+    try:
+        parts = message.text.split(" ", 1)
+        if len(parts) != 2:
+            await message.reply("Неверный формат команды. Используйте: /ImAdmin [пароль]")
+            return
+
+        input_password = parts[1]
+        input_password_hash = hashlib.sha256(input_password.encode()).hexdigest()
+
+        if input_password_hash != ADMIN_PASSWORD_HASH:
+            await message.reply("Неверный пароль.")
+            return
+
+        async with AsyncSession(engine) as db:
+            try:
+                await _change_user_status(message.chat.id, db)
+                await message.reply("Теперь вы администратор.")
+            except BotException as be:
+                await message.reply(be.detail)
+            except Exception as e:
+                logger.exception("Ошибка при установке администратора.")
+                await message.reply("Произошла ошибка. Попробуйте снова позже.")
+    except Exception as e:
+        logger.exception("Ошибка в команде ImAdmin.")
+        await message.reply("Произошла ошибка.")
+
+
 if __name__ == "__main__":
     asyncio.run(main())
+
