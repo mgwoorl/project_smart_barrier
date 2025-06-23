@@ -5,7 +5,7 @@ from src.bot.exceptions import BotException
 from passlib.context import CryptContext
 from datetime import datetime
 
-from src.users.models import User
+from src.sensors.models import User, System
 
 
 async def _add_new_user(user_chat_id: str, chat_id: int, db: AsyncSession):
@@ -54,6 +54,70 @@ async def _change_user_status(chat_id: int, db: AsyncSession):
             raise BotException("Пользователь не найден.")
 
         user.isAdmin = True  
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise
+
+async def _remove_admin_rights(target_chat_id: int, requester_chat_id: int, db: AsyncSession):
+    try:
+        requester = await db.execute(
+            select(User).where(User.chat_id == requester_chat_id, User.isAdmin == True, User.deleted_at == None)
+        )
+        requester = requester.scalar_one_or_none()
+        if not requester:
+            raise BotException("У вас нет прав для выполнения этой команды.")
+
+        target = await db.execute(
+            select(User).where(User.chat_id == target_chat_id, User.deleted_at == None)
+        )
+        target = target.scalar_one_or_none()
+        if not target:
+            raise BotException("Пользователь не найден.")
+
+        target.isAdmin = False
+
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+async def _set_wanna_entrance_open(requester_chat_id: int, db: AsyncSession):
+    try:
+        user = await db.execute(
+            select(User).where(User.chat_id == requester_chat_id, User.deleted_at == None)
+        )
+        user = user.scalar_one_or_none()
+        if not user:
+            raise BotException("Вы не зарегистрированы в системе.")
+
+        result = await db.execute(select(System).where(System.id == 1))
+        system = result.scalar_one_or_none()
+        if not system:
+            raise BotException("Системная запись не найдена.")
+
+        system.isWannaEntranceOpen = 1
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise
+
+
+async def _set_wanna_exit_open(requester_chat_id: int, db: AsyncSession):
+    try:
+        user = await db.execute(
+            select(User).where(User.chat_id == requester_chat_id, User.deleted_at == None)
+        )
+        user = user.scalar_one_or_none()
+        if not user:
+            raise BotException("Вы не зарегистрированы в системе.")
+
+        result = await db.execute(select(System).where(System.id == 1))
+        system = result.scalar_one_or_none()
+        if not system:
+            raise BotException("Системная запись не найдена.")
+
+        system.isWannaExitOpen = 1
         await db.commit()
     except Exception as e:
         await db.rollback()
