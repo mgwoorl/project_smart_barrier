@@ -35,6 +35,7 @@ user_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📋 Мой Chat ID")],
         [KeyboardButton(text="🔓 Открыть въезд"), KeyboardButton(text="🚪 Открыть выезд")],
+        [KeyboardButton(text="ℹ Свободные места")],
         [KeyboardButton(text="🛡 Стать админом")],
     ],
     resize_keyboard=True
@@ -44,6 +45,7 @@ admin_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📋 Мой Chat ID")],
         [KeyboardButton(text="🔓 Открыть въезд"), KeyboardButton(text="🚪 Открыть выезд")],
+        [KeyboardButton(text="ℹ Свободные места")],
         [KeyboardButton(text="➕ Зарегистрировать пользователя")],
         [KeyboardButton(text="❌ Удалить админа")],
     ],
@@ -159,6 +161,20 @@ async def remove_admin_handler(message: Message, state: FSMContext):
         await message.answer("Неверный формат. Введите числовой chat ID.")
     await state.clear()
 
+@dp.message(F.text == "ℹ Свободные места")
+async def handle_free_places(message: Message):
+    async with AsyncSession(engine) as db:
+        try:
+            result = await db.execute(select(Sensor.free_places).order_by(Sensor.id.desc()).limit(1))
+            free_places = result.scalar_one_or_none()
+
+            if free_places is not None:
+                await message.answer(f"🚗 Свободных мест: {free_places}")
+            else:
+                await message.answer("Не удалось получить данные о парковке.")
+        except Exception as e:
+            logger.exception("Ошибка при получении свободных мест")
+            await message.answer("Произошла ошибка при получении данных.")
 
 
 alert_sent = False  
