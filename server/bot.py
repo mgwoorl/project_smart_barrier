@@ -29,6 +29,24 @@ if not TELEGRAM_BOT_TOKEN:
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
+user_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📋 Мой Chat ID")],
+        [KeyboardButton(text="🔓 Открыть въезд"), KeyboardButton(text="🚪 Открыть выезд")],
+        [KeyboardButton(text="🛡 Стать админом")],
+    ],
+    resize_keyboard=True
+)
+
+admin_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📋 Мой Chat ID")],
+        [KeyboardButton(text="🔓 Открыть въезд"), KeyboardButton(text="🚪 Открыть выезд")],
+        [KeyboardButton(text="➕ Зарегистрировать пользователя")],
+        [KeyboardButton(text="❌ Удалить админа")],
+    ],
+    resize_keyboard=True
+)
 
 @dp.message(CommandStart())
 async def handle_start(message: Message):
