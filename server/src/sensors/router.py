@@ -46,3 +46,25 @@ async def get_status_data(db: AsyncSession = Depends(get_db_session)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Internal server error"}
         )
+
+
+
+from src.sensors.schemes import ResetGateStatusModel
+from src.sensors.logic import reset_gate_flags
+
+@sensor_router.post("/reset-gate-status", response_model=SimpleResponseModel)
+async def reset_gate_status(data: ResetGateStatusModel, db: AsyncSession = Depends(get_db_session)):
+    try:
+        await reset_gate_flags(data, db)
+        return SimpleResponseModel(detail="Gate status flags reset successfully")
+    except SensorException as se:
+        return JSONResponse(
+            status_code=se.status_code,
+            content={"detail": se.detail}
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error while resetting gate status: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal server error"}
+        )
