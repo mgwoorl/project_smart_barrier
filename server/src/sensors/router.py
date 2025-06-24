@@ -28,7 +28,6 @@ async def receive_esp_data(data: ESPDataModel, db: AsyncSession = Depends(get_db
             content={"detail": "Internal server error"}
         )
 
-
 @sensor_router.get("/data")
 async def get_status_data(db: AsyncSession = Depends(get_db_session)):
     try:
@@ -46,8 +45,6 @@ async def get_status_data(db: AsyncSession = Depends(get_db_session)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Internal server error"}
         )
-
-
 
 from src.sensors.schemes import ResetGateStatusModel
 from src.sensors.logic import reset_gate_flags
