@@ -143,3 +143,26 @@ void openBarrier(GateAction action) {
     Serial.println("🟢 Шлагбаум на ВЫЕЗД ОТКРЫТ");
   }
 }
+
+void resetGateStatus() {
+  barrierServo.write(0);
+  Serial.println("🔴 Шлагбаум ЗАКРЫТ");
+
+  HTTPClient http;
+  http.begin(client, String(baseUrl) + resetEndpoint);
+  http.addHeader("Content-Type", "application/json");
+
+  String payload = "{\"reset_entrance\":" + String(lastGateAction == ENTRANCE ? "true" : "false") +
+                   ",\"reset_exit\":" + String(lastGateAction == EXIT ? "true" : "false") + "}";
+
+  int httpCode = http.POST(payload);
+  String response = http.getString();
+
+  Serial.print("Сброс флагов: ");
+  Serial.println(httpCode);
+  Serial.println("Ответ сервера при сбросе:");
+  Serial.println(response);
+
+  http.end();
+  lastGateAction = NONE;
+}
