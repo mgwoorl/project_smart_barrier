@@ -1,26 +1,33 @@
 import asyncio
 import os
-from aiogram import Bot, Dispatcher
-from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, ReplyKeyboardRemove
-from sqlalchemy.ext.asyncio import AsyncSession
-import logging
-from src.bot.exceptions import BotException
-from src.bot.logic import _add_new_user
-from src.bot.logic import _change_user_status
-from src.database import engine
 import hashlib
+import logging
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.filters import CommandStart
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.memory import MemoryStorage
+
+from src.bot.exceptions import BotException
+from src.bot.logic import (
+    _add_new_user,
+    _change_user_status,
+    _remove_admin_rights,
+    _set_wanna_entrance_open,
+    _set_wanna_exit_open
+)
+from src.database import engine
 
 logger = logging.getLogger(__name__)
-
-
 TELEGRAM_BOT_TOKEN = os.environ.get("BOT_TOKEN")
-
 if not TELEGRAM_BOT_TOKEN:
     raise ValueError("BOT_TOKEN is not set in environment variables.")
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(storage=MemoryStorage())
 
 
 @dp.message(CommandStart())
@@ -71,7 +78,6 @@ async def main():
         await bot.session.close()
 
 
-# Хэш пароля "admin228"
 ADMIN_PASSWORD_HASH = hashlib.sha256("admin228".encode()).hexdigest()
 
 @dp.message(Command("ImAdmin"))
