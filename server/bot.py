@@ -90,40 +90,29 @@ async def handle_open_exit(message: Message):
             await message.answer("Произошла ошибка. Попробуйте позже.")
 
 
-@dp.message(Command("register"))
-async def register_command(message: Message):
-    try:
-        parts = message.text.split(" ", 1)
-        if len(parts) != 2:
-            await message.reply("Неверный формат команды. Используйте: /register [chat id пользователь]")
-            return
-
-        user_chat_id = parts[1]
-
-        async with AsyncSession(engine) as db:
-            try:
-                await _add_new_user(user_chat_id, message.chat.id, db)
-                await message.reply(f"Пользователь {user_chat_id} успешно добавлен.")
-            except BotException as exception:
-                await message.reply(exception.detail)
-                return
-            except Exception as e:
-                logger.exception(f"Ошибка работы бота: {e}")
-                await message.reply("Неизвестная ошибка. Начните сначала или попробуйте использовать команду позже")
-                return
-    except Exception as e:
-        logger.exception(f"Ошибка работы бота: {e}")
-        await message.reply("Произошла ошибка при обработке команды. Проверьте формат и повторите попытку.")
+@dp.message(F.text == "➕ Зарегистрировать пользователя")
+async def register_user_prompt(message: Message, state: FSMContext):
+    await message.answer("Введите Chat ID пользователя для регистрации:")
+    await state.set_state(AdminStates.waiting_for_register_id)
 
 
-async def main():
-    try:
-        print("Bot started")
-        await dp.start_polling(bot)
-    except KeyboardInterrupt:
-        print("Bot stopped")
-    finally:
-        await bot.session.close()
+@dp.message(AdminStates.waiting_for_register_id)
+async def register_user(message: Message, state: FSMContext):
+    user_chat_id = message.text.strip()
+    if not user_chat_id.isdigit():
+        await message.answer("Неверный формат. Введите числовой chat ID.")
+        return
+
+    async with AsyncSession(engine) as db:
+        try:
+            await _add_new_user(user_chat_id, message.chat.id, db)
+            await message.answer(f"Пользователь {user_chat_id} зарегистрирован ✅")
+        except BotException as e:
+            await message.answer(e.detail)
+        except Exception as e:
+            logger.exception("Ошибка регистрации")
+            await message.answer("Ошибка при регистрации пользователя.")
+    await state.clear()
 
 
 @dp.message(F.text == "🛡 Стать админом")
@@ -144,6 +133,10 @@ async def handle_admin_password(message: Message):
             await message.answer("Произошла ошибка. Попробуйте позже.")
 
 
+
+async def main():
+    print("Bot started")
+    await dp.start_polling(bot)
+
 if __name__ == "__main__":
     asyncio.run(main())
-
