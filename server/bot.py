@@ -48,16 +48,46 @@ admin_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+class AdminStates(StatesGroup):
+    waiting_for_register_id = State()
+    waiting_for_remove_admin_id = State()
+
+ADMIN_PASSWORD_HASH = hashlib.sha256("admin228".encode()).hexdigest()
+
 @dp.message(CommandStart())
 async def handle_start(message: Message):
-    username = message.from_user.username
-    instruction = f"👋 Привет, {username}!\nЯ — Бот Барьер 🤖\n\nВот список доступных команд:\n🔹 /register [chat_id] — регистрация пользователя (доступно только для админов)\n🔹 /chat — узнать свой уникальный айдишник\n\n"
-    await message.answer(instruction)
+    await message.answer("👋 Привет! Я Бот Барьер. Выберите действие ниже 👇", reply_markup=user_keyboard)
 
 
-@dp.message(Command("chat"))
+@dp.message(F.text == "📋 Мой Chat ID")
 async def handle_chat_id(message: Message):
-    await message.answer(str(message.chat.id))
+    await message.answer(f"Ваш chat ID: `{message.chat.id}`", parse_mode="Markdown")
+
+
+@dp.message(F.text == "🔓 Открыть въезд")
+async def handle_open_entrance(message: Message):
+    async with AsyncSession(engine) as db:
+        try:
+            await _set_wanna_entrance_open(message.chat.id, db)
+            await message.answer("Въезд открыт ✅")
+        except BotException as e:
+            await message.answer(e.detail)
+        except Exception as e:
+            logger.exception("Ошибка открытия въезда")
+            await message.answer("Произошла ошибка. Попробуйте позже.")
+
+
+@dp.message(F.text == "🚪 Открыть выезд")
+async def handle_open_exit(message: Message):
+    async with AsyncSession(engine) as db:
+        try:
+            await _set_wanna_exit_open(message.chat.id, db)
+            await message.answer("Выезд открыт ✅")
+        except BotException as e:
+            await message.answer(e.detail)
+        except Exception as e:
+            logger.exception("Ошибка открытия выезда")
+            await message.answer("Произошла ошибка. Попробуйте позже.")
 
 
 @dp.message(Command("register"))
