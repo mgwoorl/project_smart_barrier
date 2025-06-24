@@ -132,7 +132,28 @@ async def handle_admin_password(message: Message):
             logger.exception("Ошибка назначения администратора")
             await message.answer("Произошла ошибка. Попробуйте позже.")
 
+@dp.message(F.text == "❌ Удалить админа")
+async def remove_admin_prompt(message: Message, state: FSMContext):
+    await message.answer("Введите Chat ID пользователя, у которого нужно отобрать права администратора:")
+    await state.set_state(AdminStates.waiting_for_remove_admin_id)
 
+
+@dp.message(AdminStates.waiting_for_remove_admin_id)
+async def remove_admin_handler(message: Message, state: FSMContext):
+    try:
+        target_id = int(message.text.strip())
+        async with AsyncSession(engine) as db:
+            try:
+                await _remove_admin_rights(target_id, message.chat.id, db)
+                await message.answer(f"Права администратора у пользователя {target_id} сняты ✅")
+            except BotException as e:
+                await message.answer(e.detail)
+            except Exception as e:
+                logger.exception("Ошибка удаления администратора")
+                await message.answer("Произошла ошибка при снятии прав администратора.")
+    except ValueError:
+        await message.answer("Неверный формат. Введите числовой chat ID.")
+    await state.clear()
 
 async def main():
     print("Bot started")
