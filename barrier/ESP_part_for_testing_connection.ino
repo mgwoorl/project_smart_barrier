@@ -66,3 +66,8 @@ void loop() {
     lastDataSend = now;
   }
 }
+
+void generateFakeSensorData() {
+  co2Value = random(300, 1200);
+  freePlaces = random(0, 10);
+}
