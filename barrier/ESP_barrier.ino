@@ -1,171 +1,173 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <Servo.h>
-#include <ArduinoJson.h>
 
 const char* ssid = "Estriper";
 const char* password = "lalala3031";
-const char* serverURL = "http://0.0.0.0:8000";
 
-WiFiClient client;
-Servo barrierServo;
+const char* baseUrl = "http://192.168.109.122:5050";
+const char* dataEndpoint = "/sensors/data";
+const char* resetEndpoint = "/sensors/reset-gate-status";
+const int espId = 1;
 
-const String esp_id = "123"; // Уникальный ID ESP
-const float DISTANCE_THRESHOLD = 30.0;
-
-const int trigPin = D1;
-const int echoPin = D2;
 const int servoPin = D4;
+Servo barrierServo;
+WiFiClient client;
 
-String uartBuffer = "";
-String co2 = "";
-String light = "";
-String temp = "";
+const int trigPin_enter = D1;
+const int echoPin_enter = D2;
+
+const int trigPin_excit = D8;
+const int echoPin_excit = D5;
 
 bool isGateOpened = false;
 unsigned long gateOpenedAt = 0;
 unsigned long lastStatusCheck = 0;
 unsigned long lastDataSend = 0;
 
-void setup() {
-  Serial.begin(9600);
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
+const int TOTAL_SPOTS = 2;
+int freePlaces = -1;
+int co2Value = -1;
+int distanceEntrance = 25;
+int distanceExit = 25;
 
+enum GateAction { NONE, ENTRANCE, EXIT };
+GateAction lastGateAction = NONE;
+
+void setup() {
+  Serial.begin(9600);  // UART от Arduino
   barrierServo.attach(servoPin);
-  barrierServo.write(0); // Закрыто
+  barrierServo.write(0);  // закрыто
 
   WiFi.begin(ssid, password);
-  Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500); Serial.print(".");
+    delay(500);
+    Serial.print(".");
   }
-  Serial.println("\nConnected to WiFi!");
+  Serial.println("\nWi-Fi подключен");
+  Serial.println("Ожидание данных от Arduino...");
 }
 
-float readDistanceCM() {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  long duration = pulseIn(echoPin, HIGH, 30000); // max 30ms
-  if (duration == 0) return 999;
-  return duration * 0.0343 / 2;
+void loop() {
+  unsigned long now = millis();
+
+  // Получение данных с Arduino
+  handleSerialInput();
+
+  // Пока шлагбаум открыт, ничего не делаем
+  if (isGateOpened) {
+    if (now - gateOpenedAt >= 15000) {
+      resetGateStatus();
+      isGateOpened = false;
+    }
+    return;
+  }
+
+  if (now - lastStatusCheck > 3000) {
+    checkOpenRequest();
+    lastStatusCheck = now;
+  }
+
+  if (now - lastDataSend > 5000) {
+    sendSensorData();
+    lastDataSend = now;
+  }
 }
 
-void parseUARTData() {
-  while (Serial.available()) {
-    char c = Serial.read();
-    if (c == '\n') {
-      if (uartBuffer.length() > 0) {
-        // Пример строки: CO2=400;LIGHT=350;TEMP=23.5
-        int c1 = uartBuffer.indexOf("CO2=");
-        int c2 = uartBuffer.indexOf("LIGHT=");
-        int c3 = uartBuffer.indexOf("TEMP=");
+void handleSerialInput() {
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
 
-        if (c1 != -1) co2 = uartBuffer.substring(c1 + 4, uartBuffer.indexOf(";", c1));
-        if (c2 != -1) light = uartBuffer.substring(c2 + 6, uartBuffer.indexOf(";", c2));
-        if (c3 != -1) temp = uartBuffer.substring(c3 + 5);
+    if (input.startsWith("CO:")) {
+      int coStart = input.indexOf("CO:") + 3;
+      int coEnd = input.indexOf(";", coStart);
+      String coStr = input.substring(coStart, coEnd);
+      co2Value = coStr.toInt();
 
-        Serial.println("Parsed UART: CO2=" + co2 + ", LIGHT=" + light + ", TEMP=" + temp);
-      }
-      uartBuffer = "";
-    } else {
-      uartBuffer += c;
+      int freeCount = 0;
+      if (input.indexOf("P1:free") != -1) freeCount++;
+      if (input.indexOf("P2:free") != -1) freeCount++;
+      freePlaces = freeCount;
+
+      Serial.print("Получены данные: CO2 = ");
+      Serial.print(co2Value);
+      Serial.print(" ppm, Свободно мест: ");
+      Serial.println(freePlaces);
     }
   }
 }
 
 void sendSensorData() {
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (co2Value < 0 || freePlaces < 0) {
+    Serial.println("Ожидаю корректные данные от Arduino...");
+    return;
+  }
+
+  String payload = "{\"id\":" + String(espId) +
+                   ",\"distance_entrance\":" + String(distanceEntrance) +
+                   ",\"distance_exit\":" + String(distanceExit) +
+                   ",\"free_places\":" + String(freePlaces) +
+                   ",\"co2\":" + String(co2Value) + "}";
 
   HTTPClient http;
-  http.begin(client, String(serverURL) + "/esp/update-data");
+  http.begin(client, String(baseUrl) + dataEndpoint);
   http.addHeader("Content-Type", "application/json");
+  int httpCode = http.POST(payload);
 
-  StaticJsonDocument<256> doc;
-  doc["esp_id"] = esp_id;
-  doc["co2"] = co2;
-  doc["light"] = light;
-  doc["temp"] = temp;
-  doc["distance"] = readDistanceCM();
-
-  String json;
-  serializeJson(doc, json);
-  int httpCode = http.POST(json);
-  Serial.println("Data POST: " + String(httpCode));
+  Serial.print("Отправка данных: ");
+  Serial.println(httpCode);
   http.end();
 }
 
-void checkStatusFromServer() {
-  if (WiFi.status() != WL_CONNECTED || isGateOpened) return;
-
+void checkOpenRequest() {
   HTTPClient http;
-  String url = String(serverURL) + "/esp/status-check?esp_id=" + esp_id;
-  http.begin(client, url);
+  http.begin(client, String(baseUrl) + dataEndpoint);
   int httpCode = http.GET();
 
-  if (httpCode == HTTP_CODE_OK) {
-    String payload = http.getString();
-    StaticJsonDocument<128> doc;
-    DeserializationError error = deserializeJson(doc, payload);
-    if (!error) {
-      bool isWannaOpen = doc["isWannaOpen"];
-      Serial.println("Status: isWannaOpen = " + String(isWannaOpen));
+  if (httpCode == 200) {
+    String response = http.getString();
+    bool wannaEntranceOpen = response.indexOf("\"isWannaEntranceOpen\":true") >= 0;
+    bool wannaExitOpen = response.indexOf("\"isWannaExitOpen\":true") >= 0;
 
-      if (isWannaOpen && readDistanceCM() < DISTANCE_THRESHOLD) {
-        barrierServo.write(90);
-        isGateOpened = true;
-        gateOpenedAt = millis();
-        Serial.println("Gate opened");
-      }
+    if (wannaEntranceOpen) {
+      openBarrier(ENTRANCE);
+    } else if (wannaExitOpen) {
+      openBarrier(EXIT);
     }
-  } else {
-    Serial.println("Status check failed");
   }
+
   http.end();
 }
 
-void sendCloseSignal() {
-  if (WiFi.status() != WL_CONNECTED) return;
+void openBarrier(GateAction action) {
+  barrierServo.write(90);
+  isGateOpened = true;
+  gateOpenedAt = millis();
+  lastGateAction = action;
+
+  if (action == ENTRANCE) {
+    Serial.println("🟢 Шлагбаум на ВЪЕЗД ОТКРЫТ");
+  } else if (action == EXIT) {
+    Serial.println("🟢 Шлагбаум на ВЫЕЗД ОТКРЫТ");
+  }
+}
+
+void resetGateStatus() {
+  barrierServo.write(0);
+  Serial.println("🔴 Шлагбаум ЗАКРЫТ");
 
   HTTPClient http;
-  http.begin(client, String(serverURL) + "/esp/close-request");
+  http.begin(client, String(baseUrl) + resetEndpoint);
   http.addHeader("Content-Type", "application/json");
 
-  StaticJsonDocument<128> doc;
-  doc["esp_id"] = esp_id;
-  doc["isWannaOpen"] = false;
+  String payload = "{\"reset_entrance\":" + String(lastGateAction == ENTRANCE ? "true" : "false") +
+                   ",\"reset_exit\":" + String(lastGateAction == EXIT ? "true" : "false") + "}";
 
-  String json;
-  serializeJson(doc, json);
-  int httpCode = http.POST(json);
-  Serial.println("Close POST: " + String(httpCode));
+  int httpCode = http.POST(payload);
+  Serial.print("Сброс флагов: ");
+  Serial.println(httpCode);
   http.end();
-}
 
-void handleGateTimer() {
-  if (isGateOpened && millis() - gateOpenedAt >= 10000) {
-    barrierServo.write(0);
-    isGateOpened = false;
-    sendCloseSignal();
-    Serial.println("Gate closed after 10 sec");
-  }
-}
-
-void loop() {
-  parseUARTData();
-  handleGateTimer();
-
-  unsigned long now = millis();
-  if (!isGateOpened && now - lastStatusCheck >= 5000) {
-    lastStatusCheck = now;
-    checkStatusFromServer();
-  }
-
-  if (now - lastDataSend >= 5000) {
-    lastDataSend = now;
-    sendSensorData();
-  }
+  lastGateAction = NONE;
 }
