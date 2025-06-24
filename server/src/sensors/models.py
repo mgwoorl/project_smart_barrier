@@ -20,4 +20,10 @@ class Sensor(BaseDBModel):
     free_places = Column(Integer, nullable=True)           
     co2 = Column(Integer, nullable=True)
 
+class System(BaseDBModel):
+    __tablename__ = "system"
 
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    isEntranceBlock = Column(Boolean, nullable=False)       
+    isWannaEntranceOpen = Column(Boolean, nullable=False)
+    isWannaExitOpen = Column(Boolean, nullable=False)
