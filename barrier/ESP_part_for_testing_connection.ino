@@ -27,3 +27,18 @@ int distanceExit = 25;
 
 enum GateAction { NONE, ENTRANCE, EXIT };
 GateAction lastGateAction = NONE;
+
+void setup() {
+  Serial.begin(9600);
+  barrierServo.attach(servoPin);
+  barrierServo.write(0);  // закрыто
+
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWi-Fi подключен");
+  Serial.println("Введите команду 'c <вход> <выход>' для установки расстояний.");
+}
+
