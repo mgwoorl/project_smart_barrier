@@ -166,3 +166,37 @@ void resetGateStatus() {
   http.end();
   lastGateAction = NONE;
 }
+
+void handleSerialInput() {
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+
+    if (input.startsWith("c ")) {
+      input.remove(0, 2); // удаляем 'c '
+      int spaceIndex = input.indexOf(' ');
+      if (spaceIndex > 0) {
+        String entranceStr = input.substring(0, spaceIndex);
+        String exitStr = input.substring(spaceIndex + 1);
+
+        int entranceVal = entranceStr.toInt();
+        int exitVal = exitStr.toInt();
+
+        if (entranceVal >= 0 && exitVal >= 0) {
+          distanceEntrance = entranceVal;
+          distanceExit = exitVal;
+
+          Serial.print("Установлены новые значения: вход = ");
+          Serial.print(distanceEntrance);
+          Serial.print(" см, выход = ");
+          Serial.print(distanceExit);
+          Serial.println(" см.");
+        } else {
+          Serial.println("Ошибка: значения должны быть положительными числами.");
+        }
+      } else {
+        Serial.println("Формат команды: c <вход> <выход>");
+      }
+    }
+  }
+}
