@@ -27,3 +27,22 @@ async def receive_esp_data(data: ESPDataModel, db: AsyncSession = Depends(get_db
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Internal server error"}
         )
+
+
+@sensor_router.get("/data")
+async def get_status_data(db: AsyncSession = Depends(get_db_session)):
+    try:
+        system = await get_status(db)
+        return {
+            "system": {
+                "isWannaEntranceOpen": system.isWannaEntranceOpen,
+                "isWannaExitOpen": system.isWannaExitOpen,
+                "isEntranceBlock": system.isEntranceBlock,
+            }
+        }
+    except Exception as e:
+        logger.exception(f"Unexpected error while retrieving system: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal server error"}
+        )
