@@ -41,3 +41,7 @@ async def reset_gate_flags(data: ResetGateStatusModel, db: AsyncSession):
     await db.commit()
     await db.refresh(system)
     return system
+
+async def get_status(db: AsyncSession):
+    result = await db.execute(select(System))
+    return result.scalars().all()
