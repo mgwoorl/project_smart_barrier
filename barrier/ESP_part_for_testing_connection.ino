@@ -42,3 +42,27 @@ void setup() {
   Serial.println("Введите команду 'c <вход> <выход>' для установки расстояний.");
 }
 
+void loop() {
+  unsigned long now = millis();
+
+  if (isGateOpened) {
+    if (now - gateOpenedAt >= 15000) {
+      resetGateStatus();  // Закрытие и сброс флагов
+      isGateOpened = false;
+    }
+    return;
+  }
+
+  handleSerialInput();
+  generateFakeSensorData();
+
+  if (now - lastStatusCheck > 3000) {
+    checkOpenRequest();
+    lastStatusCheck = now;
+  }
+
+  if (now - lastDataSend > 5000) {
+    sendSensorData();
+    lastDataSend = now;
+  }
+}
