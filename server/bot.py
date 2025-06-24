@@ -90,6 +90,24 @@ async def handle_open_exit(message: Message):
             await message.answer("Произошла ошибка. Попробуйте позже.")
 
 
+@dp.message(F.text == "🛡 Стать админом")
+async def handle_become_admin(message: Message):
+    await message.answer("Введите пароль администратора:")
+
+
+@dp.message(F.text.regexp("^admin228$"))
+async def handle_admin_password(message: Message):
+    async with AsyncSession(engine) as db:
+        try:
+            await _change_user_status(message.chat.id, db)
+            await message.answer("Вы стали администратором ✅", reply_markup=admin_keyboard)
+        except BotException as e:
+            await message.answer(e.detail)
+        except Exception as e:
+            logger.exception("Ошибка назначения администратора")
+            await message.answer("Произошла ошибка. Попробуйте позже.")
+
+
 @dp.message(F.text == "➕ Зарегистрировать пользователя")
 async def register_user_prompt(message: Message, state: FSMContext):
     await message.answer("Введите Chat ID пользователя для регистрации:")
@@ -115,23 +133,6 @@ async def register_user(message: Message, state: FSMContext):
     await state.clear()
 
 
-@dp.message(F.text == "🛡 Стать админом")
-async def handle_become_admin(message: Message):
-    await message.answer("Введите пароль администратора:")
-
-
-@dp.message(F.text.regexp("^admin228$"))
-async def handle_admin_password(message: Message):
-    async with AsyncSession(engine) as db:
-        try:
-            await _change_user_status(message.chat.id, db)
-            await message.answer("Вы стали администратором ✅", reply_markup=admin_keyboard)
-        except BotException as e:
-            await message.answer(e.detail)
-        except Exception as e:
-            logger.exception("Ошибка назначения администратора")
-            await message.answer("Произошла ошибка. Попробуйте позже.")
-
 @dp.message(F.text == "❌ Удалить админа")
 async def remove_admin_prompt(message: Message, state: FSMContext):
     await message.answer("Введите Chat ID пользователя, у которого нужно отобрать права администратора:")
@@ -154,6 +155,7 @@ async def remove_admin_handler(message: Message, state: FSMContext):
     except ValueError:
         await message.answer("Неверный формат. Введите числовой chat ID.")
     await state.clear()
+
 
 async def main():
     print("Bot started")
