@@ -27,3 +27,12 @@ class System(BaseDBModel):
     isEntranceBlock = Column(Boolean, nullable=False)       
     isWannaEntranceOpen = Column(Boolean, nullable=False)
     isWannaExitOpen = Column(Boolean, nullable=False)
+
+class DayStatistic(BaseDBModel):
+    __tablename__ = "day_statistics"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    date = Column(Date, nullable=False)
+    hour = Column(Integer, nullable=False)  # от 0 до 23 включительно
+    entered = Column(Integer, default=0)
+    exited = Column(Integer, default=0)
