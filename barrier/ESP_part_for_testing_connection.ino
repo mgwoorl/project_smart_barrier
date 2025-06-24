@@ -102,3 +102,31 @@ void sendSensorData() {
   Serial.print(" см, Выход: ");
   Serial.println(distanceExit);
 }
+
+void checkOpenRequest() {
+  HTTPClient http;
+  http.begin(client, String(baseUrl) + dataEndpoint);
+  int httpCode = http.GET();
+
+  if (httpCode == 200) {
+    String response = http.getString();
+    Serial.println("Ответ от /sensors/data:");
+    Serial.println(response);
+
+    bool wannaEntranceOpen = response.indexOf("\"isWannaEntranceOpen\":true") >= 0;
+    bool wannaExitOpen = response.indexOf("\"isWannaExitOpen\":true") >= 0;
+
+    if (wannaEntranceOpen) {
+      Serial.println("Запрос на открытие въезда обнаружен.");
+      openBarrier(ENTRANCE);
+    } else if (wannaExitOpen) {
+      Serial.println("Запрос на открытие выезда обнаружен.");
+      openBarrier(EXIT);
+    }
+  } else {
+    Serial.print("Ошибка запроса к /sensors/data: ");
+    Serial.println(httpCode);
+  }
+
+  http.end();
+}
