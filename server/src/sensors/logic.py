@@ -4,17 +4,18 @@ from src.sensors.models import Sensor, System
 from src.sensors.schemes import ESPDataModel, ResetGateStatusModel
 from src.sensors.exceptions import SensorException
 
-
 async def upsert_sensor_data(data: ESPDataModel, db: AsyncSession):
     result = await db.execute(select(Sensor).filter(Sensor.id == data.id))
     sensor = result.scalar_one_or_none()
 
     if sensor:
+        # обновляем существующую запись
         sensor.co2 = data.co2
         sensor.free_places = data.free_places
         sensor.distance_entrance = data.distance_entrance
         sensor.distance_exit = data.distance_exit
     else:
+        # создаем новую запись
         sensor = Sensor(
             id=data.id,
             co2=data.co2,
@@ -44,4 +45,4 @@ async def reset_gate_flags(data: ResetGateStatusModel, db: AsyncSession):
 
 async def get_status(db: AsyncSession):
     result = await db.execute(select(System))
-    return result.scalars().all()
+    return result.scalars().first()
