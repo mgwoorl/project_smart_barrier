@@ -27,3 +27,17 @@ async def upsert_sensor_data(data: ESPDataModel, db: AsyncSession):
     await db.commit()
     await db.refresh(sensor)
     return sensor
+
+async def reset_gate_flags(data: ResetGateStatusModel, db: AsyncSession):
+    system = await db.get(System, 1)
+    if not system:
+        raise SensorException("System row not found", status_code=404)
+
+    if data.reset_entrance:
+        system.isWannaEntranceOpen = False
+    if data.reset_exit:
+        system.isWannaExitOpen = False
+
+    await db.commit()
+    await db.refresh(system)
+    return system
