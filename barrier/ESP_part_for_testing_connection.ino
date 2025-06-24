@@ -71,3 +71,34 @@ void generateFakeSensorData() {
   co2Value = random(300, 1200);
   freePlaces = random(0, 10);
 }
+
+void sendSensorData() {
+  if (co2Value < 0 || freePlaces < 0) {
+    Serial.println("Ожидаю данные от Arduino...");
+    return;
+  }
+
+  String payload = "{\"id\":" + String(espId) +
+                   ",\"distance_entrance\":" + String(distanceEntrance) +
+                   ",\"distance_exit\":" + String(distanceExit) +
+                   ",\"free_places\":" + String(freePlaces) +
+                   ",\"co2\":" + String(co2Value) + "}";
+
+  HTTPClient http;
+  http.begin(client, String(baseUrl) + dataEndpoint);
+  http.addHeader("Content-Type", "application/json");
+  int httpCode = http.POST(payload);
+
+  Serial.print("Отправка данных: ");
+  Serial.println(httpCode);
+  http.end();
+
+  Serial.print("CO2: ");
+  Serial.print(co2Value);
+  Serial.print(" ppm, Свободно: ");
+  Serial.print(freePlaces);
+  Serial.print(", Вход: ");
+  Serial.print(distanceEntrance);
+  Serial.print(" см, Выход: ");
+  Serial.println(distanceExit);
+}
