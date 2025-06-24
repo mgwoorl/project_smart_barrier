@@ -122,3 +122,46 @@ async def _set_wanna_exit_open(requester_chat_id: int, db: AsyncSession):
     except Exception as e:
         await db.rollback()
         raise
+
+async def _get_day_graph(db: AsyncSession, date: dt.date) -> str:
+    # Собираем суммарные входы/выходы по часам за день
+    res = await db.execute(
+        select(
+            DayStatistic.hour,
+            func.sum(DayStatistic.entered).label("enters"),
+            func.sum(DayStatistic.exited).label("exits")
+        ).where(DayStatistic.date == date)
+         .group_by(DayStatistic.hour)
+         .order_by(DayStatistic.hour)
+    )
+    records = res.all()
+    if not records:
+        raise BotException("Нет данных за сегодня.")
+
+    hours = [r[0] for r in records]
+    enters = [r.enters for r in records]
+    exits = [r.exits for r in records]
+
+    plt.figure(figsize=(8,4))
+    plt.plot(hours, enters, label="Въезд", marker="o")
+    plt.plot(hours, exits, label="Выезд", marker="x")
+    plt.xlabel("Час")
+    plt.ylabel("Количество")
+    plt.title(f"Статистика за {date.strftime('%d.%m.%Y')}")
+    plt.legend()
+    plt.grid(True)
+
+    buf = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    plt.close()
+
+    output_dir = os.path.join(os.getcwd(), "graphs")
+    os.makedirs(output_dir, exist_ok=True)
+
+    path = os.path.join(output_dir, f"day_stats_{date}.png")
+    with open(path, "wb") as f:
+        f.write(buf.read())
+
+    return path
