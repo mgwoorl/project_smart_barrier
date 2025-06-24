@@ -130,3 +130,16 @@ void checkOpenRequest() {
 
   http.end();
 }
+
+void openBarrier(GateAction action) {
+  barrierServo.write(90);
+  isGateOpened = true;
+  gateOpenedAt = millis();
+  lastGateAction = action;
+
+  if (action == ENTRANCE) {
+    Serial.println("🟢 Шлагбаум на ВЪЕЗД ОТКРЫТ");
+  } else if (action == EXIT) {
+    Serial.println("🟢 Шлагбаум на ВЫЕЗД ОТКРЫТ");
+  }
+}
