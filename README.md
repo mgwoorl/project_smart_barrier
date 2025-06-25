@@ -236,7 +236,8 @@ CO₂ и количество свободных мест должны быть 
 
 ## Схема
 
-![Схема норм](https://github.com/user-attachments/assets/8616a6d2-1e7d-4867-bb2f-0a01b9a3a6d6)
+![Frame 1](https://github.com/user-attachments/assets/b1a1ed48-ac54-469f-a831-ee5242e1a812)
+
 
 ## Схема
 https://drive.google.com/file/d/1xbkNostY-GqS42vO7aqeADsjEylpyNrF/view?usp=drivesdk
