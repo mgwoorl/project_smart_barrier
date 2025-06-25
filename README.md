@@ -230,7 +230,8 @@ CO₂ и количество свободных мест должны быть 
   Позволяет управлять сервоприводами с помощью простого API. В проекте используется для открытия и закрытия шлагбаума.
   
 ## Use-case
-![Usecase](https://github.com/user-attachments/assets/34640fce-60e1-4cc9-ab64-b584db4de571)
+<img width="753" alt="image" src="https://github.com/user-attachments/assets/094fe2f6-1163-4182-964a-15d2dfd2af93" />
+
 
 
 ## Схема
