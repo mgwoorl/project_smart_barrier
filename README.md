@@ -150,6 +150,17 @@
   "isWannaExitOpen": false
 }
 ```
+**Пример запроса:**
+```json
+{
+  "sensor_id": "esp32-001",
+  "temperature": 23.5,
+  "humidity": 48.2,
+  "is_entrance_block": false,
+  "is_wanna_entrance_open": true,
+  "is_wanna_exit_open": false
+}
+```
 
 ## 🧰 Аппаратные компоненты
 
