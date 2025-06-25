@@ -10,56 +10,64 @@ from src.sensors.models import User, System, DayStatistic
 
 from server.src import engine
 
+import os
+import io
+import matplotlib.pyplot as plt
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+import datetime as dt
+
 async def _add_new_user(user_chat_id: str, chat_id: int, db: AsyncSession):
     try:
-        admin = await db.execute(select(User).filter(User.chat_id == chat_id, User.isAdmin == True, User.deleted_at == None))
+        admin = await db.execute(
+            select(User).filter(User.chat_id == chat_id, User.isAdmin == True, User.deleted_at == None)
+        )
         admin = admin.scalar_one_or_none()
-
         if not admin:
             raise BotException(detail="У вас нет доступа")
-        
 
-        user = await db.execute(select(User).filter(User.chat_id == user_chat_id, User.deleted_at == None))
+        user = await db.execute(
+            select(User).filter(User.chat_id == user_chat_id, User.deleted_at == None)
+        )
         user = user.scalar_one_or_none()
-
         if user:
             raise BotException(detail="Такой пользователь уже зарегистрирован")
-        
-        deleted_user = await db.execute(select(User).filter(User.chat_id == user_chat_id, User.deleted_at != None))
-        deleted_user = deleted_user.scalar_one_or_none()
 
+        deleted_user = await db.execute(
+            select(User).filter(User.chat_id == user_chat_id, User.deleted_at != None)
+        )
+        deleted_user = deleted_user.scalar_one_or_none()
         if deleted_user:
             deleted_user.deleted_at = None
             await db.commit()
             return
-        
 
         db_user = User(
-            chat_id = user_chat_id,
-            isAdmin = False,
+            chat_id=user_chat_id,
+            isAdmin=False,
         )
-
         db.add(db_user)
         await db.commit()
-
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise
 
 
 async def _change_user_status(chat_id: int, db: AsyncSession):
     try:
-        result = await db.execute(select(User).filter(User.chat_id == chat_id, User.deleted_at == None))
+        result = await db.execute(
+            select(User).filter(User.chat_id == chat_id, User.deleted_at == None)
+        )
         user = result.scalar_one_or_none()
-
         if not user:
             raise BotException("Пользователь не найден.")
 
-        user.isAdmin = True  
+        user.isAdmin = True
         await db.commit()
-    except Exception as e:
+    except Exception:
         await db.rollback()
         raise
+
 
 async def _remove_admin_rights(target_chat_id: int, requester_chat_id: int, db: AsyncSession):
     try:
@@ -75,58 +83,105 @@ async def _remove_admin_rights(target_chat_id: int, requester_chat_id: int, db: 
         )
         target = target.scalar_one_or_none()
         if not target:
-            raise BotException("Пользователь не найден.")
+            raise BotException("Пользователь для удаления не найден.")
 
         target.isAdmin = False
-
         await db.commit()
     except Exception:
         await db.rollback()
         raise
 
-async def _set_wanna_entrance_open(requester_chat_id: int, db: AsyncSession):
+async def _set_wanna_entrance_open(chat_id: int, db: AsyncSession):
     try:
-        user = await db.execute(
-            select(User).where(User.chat_id == requester_chat_id, User.deleted_at == None)
+        user_res = await db.execute(
+            select(User).where(User.chat_id == chat_id, User.deleted_at == None)
         )
-        user = user.scalar_one_or_none()
+        user = user_res.scalar_one_or_none()
         if not user:
             raise BotException("Вы не зарегистрированы в системе.")
 
-        result = await db.execute(select(System).where(System.id == 1))
-        system = result.scalar_one_or_none()
+        sys_res = await db.execute(select(System).where(System.id == 1))
+        system = sys_res.scalar_one_or_none()
         if not system:
             raise BotException("Системная запись не найдена.")
+        system.isWannaEntranceOpen = True
 
-        system.isWannaEntranceOpen = 1
+        now = dt.datetime.now()
+        today = now.date()
+        current_hour = now.hour
+
+        stat_res = await db.execute(
+            select(DayStatistic).filter(
+                DayStatistic.date == today,
+                DayStatistic.hour == current_hour
+            )
+        )
+        stat = stat_res.scalar_one_or_none()
+
+        if not stat:
+            stat = DayStatistic(
+                date=today,
+                hour=current_hour,
+                entered=1,
+                exited=0
+            )
+            db.add(stat)
+        else:
+            stat.entered = (stat.entered or 0) + 1
+
         await db.commit()
+
     except Exception as e:
         await db.rollback()
         raise
 
 
-async def _set_wanna_exit_open(requester_chat_id: int, db: AsyncSession):
+async def _set_wanna_exit_open(chat_id: int, db: AsyncSession):
     try:
-        user = await db.execute(
-            select(User).where(User.chat_id == requester_chat_id, User.deleted_at == None)
+        user_res = await db.execute(
+            select(User).where(User.chat_id == chat_id, User.deleted_at == None)
         )
-        user = user.scalar_one_or_none()
+        user = user_res.scalar_one_or_none()
         if not user:
             raise BotException("Вы не зарегистрированы в системе.")
 
-        result = await db.execute(select(System).where(System.id == 1))
-        system = result.scalar_one_or_none()
+        # Обновление system.isWannaExitOpen
+        sys_res = await db.execute(select(System).where(System.id == 1))
+        system = sys_res.scalar_one_or_none()
         if not system:
             raise BotException("Системная запись не найдена.")
+        system.isWannaExitOpen = True
 
-        system.isWannaExitOpen = 1
+        now = dt.datetime.now()
+        today = now.date()
+        current_hour = now.hour
+
+        stat_res = await db.execute(
+            select(DayStatistic).filter(
+                DayStatistic.date == today,
+                DayStatistic.hour == current_hour
+            )
+        )
+        stat = stat_res.scalar_one_or_none()
+
+        if not stat:
+            stat = DayStatistic(
+                date=today,
+                hour=current_hour,
+                entered=0,
+                exited=1
+            )
+            db.add(stat)
+        else:
+            stat.exited = (stat.exited or 0) + 1
+
         await db.commit()
+
     except Exception as e:
         await db.rollback()
         raise
 
 async def _get_day_graph(db: AsyncSession, date: dt.date) -> str:
-    # Собираем суммарные входы/выходы по часам за день
     res = await db.execute(
         select(
             DayStatistic.hour,
@@ -167,3 +222,35 @@ async def _get_day_graph(db: AsyncSession, date: dt.date) -> str:
         f.write(buf.read())
 
     return path
+
+async def notify_high_co2():
+    global alert_sent
+    async with AsyncSession(engine) as db:
+        result = await db.execute(select(Sensor.co2).order_by(Sensor.id.desc()).limit(1))
+        latest_co2 = result.scalar_one_or_none()
+
+        if latest_co2 is None:
+            return
+
+        system = await db.execute(select(System).limit(1))
+        system = system.scalar_one_or_none()
+
+        if latest_co2 > 700 and not system.isEntranceBlock:
+            system.isEntranceBlock = True
+            await db.commit()
+            user_ids = await get_all_users(db)
+            for user_id in user_ids:
+                try:
+                    await bot.send_message(user_id, "⚠️ Вход заблокирован из-за высокого уровня CO₂!")
+                except Exception as e:
+                    logger.error(f"Не удалось отправить сообщение пользователю {user_id}: {e}")
+
+        if latest_co2 <= 700 and system.isEntranceBlock:
+            system.isEntranceBlock = False
+            await db.commit()
+            user_ids = await get_all_users(db)
+            for user_id in user_ids:
+                try:
+                    await bot.send_message(user_id, "✅ Вход разблокирован. Уровень CO₂ в норме.")
+                except Exception as e:
+                    logger.error(f"Не удалось отправить сообщение пользователю {user_id}: {e}")
