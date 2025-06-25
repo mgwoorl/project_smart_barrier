@@ -1,11 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <Servo.h>
+#include <ArduinoJson.h>
 
-const char* ssid = "Estriper";
-const char* password = "lalala3031";
+const char* ssid = "Tenda_653568";
+const char* password = "381117667";
 
-const char* baseUrl = "http://192.168.109.122:5050";
+const char* baseUrl = "http://192.168.0.101:5050";
 const char* dataEndpoint = "/sensors/data";
 const char* resetEndpoint = "/sensors/reset-gate-status";
 const int espId = 1;
@@ -35,9 +36,14 @@ enum GateAction { NONE, ENTRANCE, EXIT };
 GateAction lastGateAction = NONE;
 
 void setup() {
-  Serial.begin(9600);  // UART от Arduino
+  Serial.begin(9600);
   barrierServo.attach(servoPin);
-  barrierServo.write(0);  // закрыто
+  barrierServo.write(0);
+
+  pinMode(trigPin_enter, OUTPUT);
+  pinMode(echoPin_enter, INPUT);
+  pinMode(trigPin_excit, OUTPUT);
+  pinMode(echoPin_excit, INPUT);
 
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -51,10 +57,8 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // Получение данных с Arduino
   handleSerialInput();
 
-  // Пока шлагбаум открыт, ничего не делаем
   if (isGateOpened) {
     if (now - gateOpenedAt >= 15000) {
       resetGateStatus();
@@ -72,6 +76,23 @@ void loop() {
     sendSensorData();
     lastDataSend = now;
   }
+}
+
+float readDistanceCM(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH, 30000);
+  float distance = duration * 0.0343 / 2;
+
+  if (duration == 0) {
+    return 999.0;
+  }
+
+  return distance;
 }
 
 void handleSerialInput() {
@@ -104,11 +125,15 @@ void sendSensorData() {
     return;
   }
 
-  String payload = "{\"id\":" + String(espId) +
-                   ",\"distance_entrance\":" + String(distanceEntrance) +
-                   ",\"distance_exit\":" + String(distanceExit) +
-                   ",\"free_places\":" + String(freePlaces) +
-                   ",\"co2\":" + String(co2Value) + "}";
+  StaticJsonDocument<256> doc;
+  doc["id"] = espId;
+  doc["distance_entrance"] = distanceEntrance;
+  doc["distance_exit"] = distanceExit;
+  doc["free_places"] = freePlaces;
+  doc["co2"] = co2Value;
+
+  String payload;
+  serializeJson(doc, payload);
 
   HTTPClient http;
   http.begin(client, String(baseUrl) + dataEndpoint);
@@ -127,14 +152,24 @@ void checkOpenRequest() {
 
   if (httpCode == 200) {
     String response = http.getString();
-    bool wannaEntranceOpen = response.indexOf("\"isWannaEntranceOpen\":true") >= 0;
-    bool wannaExitOpen = response.indexOf("\"isWannaExitOpen\":true") >= 0;
 
-    if (wannaEntranceOpen) {
-      openBarrier(ENTRANCE);
-    } else if (wannaExitOpen) {
-      openBarrier(EXIT);
+    StaticJsonDocument<256> doc;
+    DeserializationError error = deserializeJson(doc, response);
+    if (!error) {
+      bool wannaEntranceOpen = doc["isWannaEntranceOpen"] | false;
+      bool wannaExitOpen = doc["isWannaExitOpen"] | false;
+
+      if (wannaEntranceOpen) {
+        openBarrier(ENTRANCE);
+      } else if (wannaExitOpen) {
+        openBarrier(EXIT);
+      }
+    } else {
+      Serial.println("Ошибка парсинга JSON с сервера");
     }
+  } else {
+    Serial.print("Ошибка HTTP GET: ");
+    Serial.println(httpCode);
   }
 
   http.end();
@@ -157,12 +192,16 @@ void resetGateStatus() {
   barrierServo.write(0);
   Serial.println("🔴 Шлагбаум ЗАКРЫТ");
 
+  StaticJsonDocument<128> doc;
+  doc["reset_entrance"] = (lastGateAction == ENTRANCE);
+  doc["reset_exit"] = (lastGateAction == EXIT);
+
+  String payload;
+  serializeJson(doc, payload);
+
   HTTPClient http;
   http.begin(client, String(baseUrl) + resetEndpoint);
   http.addHeader("Content-Type", "application/json");
-
-  String payload = "{\"reset_entrance\":" + String(lastGateAction == ENTRANCE ? "true" : "false") +
-                   ",\"reset_exit\":" + String(lastGateAction == EXIT ? "true" : "false") + "}";
 
   int httpCode = http.POST(payload);
   Serial.print("Сброс флагов: ");
