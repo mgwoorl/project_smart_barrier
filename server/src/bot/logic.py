@@ -1,12 +1,14 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import status
+from aiogram.types import InputFile
+import matplotlib.pyplot as plt
+import io
+import datetime as dt
+
 from src.bot.exceptions import BotException
-from passlib.context import CryptContext
-from datetime import datetime
+from src.sensors.models import User, System, DayStatistic
 
-from src.sensors.models import User, System
-
+from server.src import engine
 
 async def _add_new_user(user_chat_id: str, chat_id: int, db: AsyncSession):
     try:
